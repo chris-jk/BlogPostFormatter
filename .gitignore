@@ -37,3 +37,4 @@ config.json # Ignore config file that contains sensitive data like API keys
 config.json
 blog_posts/*
 temp.md
+prompt-file.txt

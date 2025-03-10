@@ -10,52 +10,71 @@ import html2text
 def markdown_to_rtf(markdown_text):
     """Convert markdown text to RTF format with enhanced styling"""
     try:
-        # First convert markdown to HTML
+        # Convert markdown to HTML with essential extensions
         html = markdown.markdown(markdown_text, extensions=['extra'])
         
-        # RTF Header with better styling
+        # RTF Header with optimized styling
         rtf_header = [
             r"{\rtf1\ansi\ansicpg1252\cocoartf2761",
             r"\cocoatextscaling0\cocoaplatform0",
             r"{\fonttbl",
             r"\f0\fswiss\fcharset0 Helvetica;",
-            r"\f1\froman\fcharset0 Times-Bold;",
-            r"\f2\fswiss\fcharset0 Helvetica-Bold;",
+            r"\f1\fswiss\fcharset0 Helvetica-Bold;",
             r"}",
-            r"{\colortbl;\red255\green255\blue255;}",
-            r"{\*\expandedcolortbl;;}",
-            r"\margl1440\margr1440\vieww12000\viewh15000\viewkind0",
-            r"\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0",
-            r"\f0\fs24\fsmilli12200",
+            r"{\colortbl;\red0\green0\blue0;}",
+            r"\paperw12240\paperh15840",
+            r"\margl1440\margr1440",
+            r"\vieww12000\viewh15000\viewkind0",
+            r"\pard\tx720\pardeftab720\partightenfactor0",
+            r"\f0\fs24",
         ]
         
         rtf = '\n'.join(rtf_header)
         
-        # Convert HTML to RTF with improved formatting
+        # Convert HTML to RTF
         rtf_body = html
         
-        # Headers with better spacing and font sizes
-        rtf_body = re.sub(r'<h1>(.*?)</h1>', r'\\f1\\b\\fs36 \1\\f0\\b0\\fs24 \\par\\par\n', rtf_body)
-        rtf_body = re.sub(r'<h2>(.*?)</h2>', r'\\f1\\b\\fs32 \1\\f0\\b0\\fs24 \\par\\par\n', rtf_body)
-        rtf_body = re.sub(r'<h3>(.*?)</h3>', r'\\f1\\b\\fs28 \1\\f0\\b0\\fs24 \\par\\par\n', rtf_body)
-        rtf_body = re.sub(r'<h4>(.*?)</h4>', r'\\f1\\b\\fs26 \1\\f0\\b0\\fs24 \\par\\par\n', rtf_body)
+        # Headers with improved spacing
+        rtf_body = re.sub(r'<h1>(.*?)</h1>', r'\\f1\\fs36\\b \1\\f0\\b0\\fs24\\par\\par', rtf_body)
+        rtf_body = re.sub(r'<h2>(.*?)</h2>', r'\\f1\\fs32\\b \1\\f0\\b0\\fs24\\par\\par', rtf_body)
+        rtf_body = re.sub(r'<h3>(.*?)</h3>', r'\\f1\\fs28\\b \1\\f0\\b0\\fs24\\par\\par', rtf_body)
         
-        # Lists with proper bullets and spacing
+        # Lists with proper bullets using RTF bullet
         rtf_body = re.sub(r'<ul>', r'\\par', rtf_body)
         rtf_body = re.sub(r'</ul>', r'\\par', rtf_body)
-        rtf_body = re.sub(r'<li>(.*?)</li>', r'• \1\\par\n', rtf_body)
+        rtf_body = re.sub(r'<li>(.*?)</li>', r'\\fi-360\\li720 {\\bullet} \1\\par', rtf_body)
         
         # Paragraphs with proper spacing
-        rtf_body = re.sub(r'<p>(.*?)</p>', r'\1\\par\\par\n', rtf_body)
+        rtf_body = re.sub(r'<p>(.*?)</p>', r'\1\\par\\par', rtf_body)
         
-        # Bold and italic text
-        rtf_body = re.sub(r'<strong>(.*?)</strong>', r'\\f2\\b \1\\f0\\b0 ', rtf_body)
+        # Inline formatting
+        rtf_body = re.sub(r'<strong>(.*?)</strong>', r'\\b \1\\b0 ', rtf_body)
         rtf_body = re.sub(r'<em>(.*?)</em>', r'\\i \1\\i0 ', rtf_body)
         
-        # Clean up any remaining HTML tags
+        # Clean up HTML tags
         rtf_body = re.sub(r'<[^>]+>', '', rtf_body)
         
-        # Add the converted body and close RTF
+        # Replace problematic characters
+        replacements = {
+            '•': '{\\bullet}',
+            '"': '"',
+            '"': '"',
+            ''': "'",
+            ''': "'",
+            '…': '...',
+            '–': '-',
+            '—': '--',
+            '\u2022': '{\\bullet}',  # Unicode bullet
+            '\u2018': "'",  # Left single quote
+            '\u2019': "'",  # Right single quote
+            '\u201C': '"',  # Left double quote
+            '\u201D': '"',  # Right double quote
+        }
+        
+        for old, new in replacements.items():
+            rtf_body = rtf_body.replace(old, new)
+        
+        # Add content and close RTF
         rtf += rtf_body + "\n}"
         
         return rtf

@@ -304,11 +304,15 @@ def speak_text(root, output_text, tts_var, test_all_voices_var=None):
     is_speaking = True
     stop_speaking = False
     
+    # Update status at start
+    update_speech_status(root, "Status: Starting speech...")
+    
     # Get the text to speak
     text = output_text.get(1.0, tk.END).strip()
     if not text:
         messagebox.showwarning("Warning", "No text to speak!")
         is_speaking = False
+        update_speech_status(root, "Status: Ready")
         return
     
     # Check if testing all voices
@@ -343,6 +347,7 @@ def speak_offline(root, text, tts_var):
             if not tts_engine:
                 messagebox.showerror("Error", "Failed to initialize speech engine.")
                 is_speaking = False
+                update_speech_status(root, "Status: Ready")
                 return
             
             # Get voice ID from settings
@@ -361,6 +366,7 @@ def speak_offline(root, text, tts_var):
             # If still no voice is set, prompt user to select one
             if not voice_id:
                 is_speaking = False  # Reset flag so UI isn't locked
+                update_speech_status(root, "Status: Ready")
                 
                 # We're in a thread, so we need to use root.after to run UI code
                 root.after(0, lambda: select_voice(root, tts_var))
@@ -384,6 +390,7 @@ def speak_offline(root, text, tts_var):
             # Add a check for stop_speaking before proceeding
             if stop_speaking:
                 is_speaking = False
+                update_speech_status(root, "Status: Ready")
                 return
                 
             # Set a moderate rate
@@ -404,31 +411,44 @@ def speak_offline(root, text, tts_var):
             # No need to delete the engine, we'll reuse it
             print("Speech completed successfully")
             
+            # Make sure we don't exit the application
+            from modules.app_globals import update_speech_status as global_update
+            root.after(1000, lambda: global_update("Status: Ready"))
+            
         except Exception as e:
             print(f"Error in speak_offline: {e}")
             root.after(0, lambda: update_speech_status(root, f"Status: Error - {str(e)[:30]}..."))
+            root.after(1000, lambda: update_speech_status(root, "Status: Ready"))
             
         finally:
             # Important: Use root.after to update flags from the main thread
-            root.after(0, lambda: finish_speech())
+            root.after(100, lambda: finish_speech())
 
-# 2. Add this new helper function to modules/tts.py to update status safely
 def update_speech_status(root, message):
     """Update speech status safely from any thread"""
     try:
-        # This needs to be imported in the app.py file and set when updating status
-        from modules.app_globals import speech_status
-        if speech_status:
-            speech_status.config(text=message)
-        # Force UI update
-        root.update_idletasks()
+        # Use the app_globals module to update status
+        from modules.app_globals import update_speech_status as global_update_status
+        global_update_status(message)
+        
+        # Force UI update if root is provided
+        if root:
+            try:
+                root.update_idletasks()
+            except Exception as e:
+                print(f"Error updating UI: {e}")
     except Exception as e:
         print(f"Error updating speech status: {e}")
 
-# 3. Add this new helper function to modules/tts.py to reset flags safely
 def finish_speech():
     """Reset speaking flags safely"""
     global is_speaking, stop_speaking
+    
+    # Update globals too
+    from modules.app_globals import update_speech_status
+    update_speech_status("Status: Ready")
+    
+    # Reset local flags
     is_speaking = False
     stop_speaking = False
     print("Speech flags reset")
@@ -463,6 +483,7 @@ def speak_online(root, output_text, text):
                 except:
                     pass
                 is_speaking = False
+                update_speech_status(root, "Status: Ready")
                 return
             
             # Play the generated speech
@@ -483,8 +504,12 @@ def speak_online(root, output_text, text):
             except:
                 pass
             
+            # Set status back to ready
+            update_speech_status(root, "Status: Ready")
+            
         except Exception as e:
             root.after(0, lambda: messagebox.showerror("Online TTS Error", f"Failed to generate or play speech: {str(e)}"))
+            update_speech_status(root, "Status: Ready")
             
         finally:
             is_speaking = False

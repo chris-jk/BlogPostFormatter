@@ -4,13 +4,18 @@ from tkinter import filedialog, scrolledtext, ttk, messagebox
 import threading
 import openai
 
+# Fix the import statement
 from modules.settings import (
     load_settings, save_settings, load_prompt, 
     PREFERRED_VOICE_IDS, DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS
 )
+
+# Update the imports at the top of the file
 from modules.tts import (
-    speak_text, stop_text_to_speech, test_voices
+    speak_text, stop_text_to_speech, test_voices, select_voice, initialize_engine
 )
+
+
 from modules.openai_api import (
     get_api_key, set_new_api_key, generate_blog_post
 )
@@ -91,18 +96,18 @@ output_text = None
 progress_bar = None
 select_button = None
 api_status = None
+tts_engine = None  # Add this global variable
 
 def create_ui(root):
     """Create the complete UI for the application"""
     # Create global variables that need to be accessed by functions
-    global output_text, progress_bar, select_button, api_status
+    global output_text, progress_bar, select_button, api_status, tts_engine
     
     # Get saved settings
     settings = load_settings()
 
     # Create Tkinter variables
     model_var = tk.StringVar(value=settings.get('model', DEFAULT_MODEL))
-    test_all_voices = tk.BooleanVar(value=False)
     selection_var = tk.StringVar(value="folder")
     tts_var = tk.StringVar(value="offline")
     
@@ -219,7 +224,7 @@ def create_ui(root):
     output_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
     
     # Output text area
-    output_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, width=100, height=30)
+    output_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, width=100, height=20)  # Changed height from 30 to 20
     output_text.pack(fill=tk.BOTH, expand=True)
     
     # --- BOTTOM BUTTONS SECTION ---
@@ -239,13 +244,14 @@ def create_ui(root):
     online_radio = ttk.Radiobutton(tts_frame, text="Online", variable=tts_var, value="online")
     online_radio.pack(side=tk.LEFT)
     
-    # Test all voices checkbox
-    test_voices_check = ttk.Checkbutton(tts_frame, text="Test All Voices", variable=test_all_voices)
-    test_voices_check.pack(side=tk.LEFT, padx=10)
+    # Voice Manager button
+    voice_manager_btn = ttk.Button(tts_frame, text="Voice Manager", 
+                                 command=lambda: manage_voice(root, tts_var))
+    voice_manager_btn.pack(side=tk.LEFT, padx=10)
     
     # Speak button
     speak_button = ttk.Button(button_frame, text="Speak", 
-                             command=lambda: speak_text(root, output_text, tts_var, test_all_voices))
+                             command=lambda: simple_speak_text(root, output_text, tts_var))
     speak_button.pack(side=tk.LEFT, padx=10)
     
     # Copy button
@@ -253,14 +259,10 @@ def create_ui(root):
                             command=lambda: copy_to_clipboard(root, output_text))
     copy_button.pack(side=tk.RIGHT)
     
-    # Stop button
-    stop_button = ttk.Button(button_frame, text="Stop", command=stop_text_to_speech)
+    # Stop button with error handling
+    stop_button = ttk.Button(button_frame, text="Stop", 
+                            command=lambda: safe_stop_speech())
     stop_button.pack(side=tk.LEFT, padx=10)
-    
-    # Test voices button
-    test_voices_button = ttk.Button(button_frame, text="Test Voices", 
-                                   command=lambda: test_voices(root, output_text, button_frame))
-    test_voices_button.pack(side=tk.LEFT, padx=10)
     
     # --- EVENT BINDINGS ---
     def update_temp_value(event):
@@ -319,6 +321,58 @@ def create_ui(root):
         token_desc_label.config(text="(Medium Post)")
     else:
         token_desc_label.config(text="(Long Post)")
+
+def manage_voice(root, tts_var):
+    """Open the voice management dialog"""
+    if tts_var.get() == "offline":
+        # Initialize a temporary engine for voice selection
+        temp_engine = initialize_engine()
+        if not temp_engine:
+            messagebox.showerror("Error", "Failed to initialize speech engine.")
+            return
+            
+        try:
+            # Use select_voice instead of select_voice_dialog
+            select_voice(root, tts_var)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to select voice: {str(e)}")
+        finally:
+            try:
+                del temp_engine
+            except:
+                pass
+    else:
+        messagebox.showinfo("Online TTS", "Voice selection is not available for online TTS.")
+
+def simple_speak_text(root, output_text, tts_var):
+    """Simplified speak text function that doesn't use the test_all_voices parameter"""
+    from modules.tts import speak_text as tts_speak_text
+    
+    # Get text from output area
+    text = output_text.get(1.0, tk.END).strip()
+    if not text:
+        messagebox.showwarning("Warning", "No text to speak!")
+        return
+    
+    # Create dummy variable for test_all_voices parameter
+    class DummyVar:
+        def get(self):
+            return False
+    
+    dummy_var = DummyVar()
+    tts_speak_text(root, output_text, tts_var, dummy_var)
+
+
+def safe_stop_speech():
+    """Safely stop the text-to-speech with error handling"""
+    try:
+        stop_text_to_speech()
+    except Exception as e:
+        print(f"Error stopping speech: {e}")
+        messagebox.showerror("Error", f"Error stopping speech: {str(e)}")
+    finally:
+        # Ensure UI remains responsive
+        root.update_idletasks()
 
 def show_help(root, title, message):
     """Show a help window with the provided title and message"""
@@ -497,3 +551,22 @@ def copy_to_clipboard(root, output_text):
     root.clipboard_clear()
     root.clipboard_append(content)
     messagebox.showinfo("Success", "Content copied to clipboard!")
+
+def safe_stop_speech():
+    """Safely stop the text-to-speech with error handling"""
+    try:
+        # Use the imported function
+        stop_text_to_speech()
+    except Exception as e:
+        print(f"Error stopping speech: {e}")
+        # Show error to user
+        messagebox.showerror("Error", f"Error stopping speech: {str(e)}")
+        
+        # Try a more aggressive cleanup
+        try:
+            global tts_engine
+            if tts_engine:
+                del tts_engine
+                tts_engine = None
+        except:
+            pass

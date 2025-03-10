@@ -527,9 +527,14 @@ def process_folder(root, model_var, temp_scale, token_scale):
             
             filepath = os.path.join(folder_selected, filename)
             with open(filepath, "r", encoding="utf-8") as file:
-                transcript = file.read()
+                content = file.read()
+                
+            # Create a named string with the filename
+            class NamedString(str): pass
+            named_content = NamedString(content)
+            named_content.name = filename  # Use just the filename, not the full path
             
-            formatted_post = generate_blog_post(transcript, prompt, model, temperature, max_tokens)
+            formatted_post = generate_blog_post(named_content, prompt, model, temperature, max_tokens)
             
             # Clear and update the output area with all processed files
             output_text.delete(1.0, tk.END)

@@ -114,6 +114,16 @@ def generate_blog_post(transcript, prompt, model, temperature, max_tokens):
         print(f"Debug: Transcript type: {type(transcript)}")
         print(f"Debug: Transcript has name attribute: {hasattr(transcript, 'name')}")
         
+        # Fail fast if no filename
+        if not hasattr(transcript, 'name'):
+            error_msg = "Error: No filename provided for the transcript"
+            print(f"Debug: {error_msg}")
+            return error_msg
+
+        # Get base filename from transcript name
+        base_name = os.path.splitext(os.path.basename(transcript.name))[0]
+        print(f"Debug: Using filename: {base_name}")
+
         # Get API response
         print("Debug: Attempting API call...")
         response = openai.ChatCompletion.create(
@@ -130,30 +140,17 @@ def generate_blog_post(transcript, prompt, model, temperature, max_tokens):
         
         # Create output directory
         os.makedirs("blog_posts", exist_ok=True)
-        print("Debug: Blog posts directory checked/created")
         
-        # Get base filename from transcript or generate unique timestamp
+        # Generate filename with timestamp
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        if hasattr(transcript, 'name'):
-            base_name = os.path.splitext(os.path.basename(transcript.name))[0]
-            print(f"Debug: Using name attribute: {base_name}")
-            filename = f"blog_posts/{base_name}_formatted_{timestamp}.txt"
-        else:
-            filename = f"blog_posts/blog_post_{timestamp}.txt"
-            print(f"Debug: Using timestamped name: {filename}")
+        filename = f"blog_posts/{base_name}_{timestamp}.txt"
         
         # Save the generated text
-        try:
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write(generated_text)
-            print(f"Debug: Successfully saved to: {filename}")
-            return generated_text
-        except Exception as e:
-            error_msg = f"Error saving file: {str(e)}"
-            print(f"Debug: {error_msg}")
-            return error_msg
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(generated_text)
+        print(f"Debug: Successfully saved to: {filename}")
+        return generated_text
             
     except openai.error.AuthenticationError:
         error_msg = "Authentication error with OpenAI API"

@@ -36,3 +36,4 @@ config.json # Ignore config file that contains sensitive data like API keys
 *.swp
 config.json
 blog_posts/*
+temp.md

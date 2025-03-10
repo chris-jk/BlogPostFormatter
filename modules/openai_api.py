@@ -4,6 +4,7 @@ from tkinter import messagebox, simpledialog, ttk
 import tkinter as tk
 import webbrowser  # Directly import webbrowser for reliability
 from modules.settings import load_settings, save_settings, OPENAI_API_KEY_URL
+from modules.rtf_converter import markdown_to_docx, save_as_docx, markdown_to_rtf  # Update import
 
 def get_api_key():
     """Get API key from environment, config file, or prompt user"""
@@ -129,14 +130,17 @@ def generate_blog_post(transcript, prompt, model, temperature, max_tokens):
         response = openai.ChatCompletion.create(
             model=model,
             messages=[
-                {"role": "system", "content": prompt},
+                {"role": "system", "content": prompt + "\nFormat your response using Markdown syntax."},
                 {"role": "user", "content": str(transcript)}
             ],
             temperature=temperature,
             max_tokens=max_tokens
         )
         print("Debug: API call successful, received response")
-        generated_text = response["choices"][0]["message"]["content"]
+        markdown_text = response["choices"][0]["message"]["content"]
+        
+        # Convert markdown to RTF
+        rtf_content = markdown_to_rtf(markdown_text)
         
         # Create output directory
         os.makedirs("blog_posts", exist_ok=True)
@@ -144,18 +148,15 @@ def generate_blog_post(transcript, prompt, model, temperature, max_tokens):
         # Generate filename with timestamp
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"blog_posts/{base_name}_{timestamp}.txt"
+        filename = f"blog_posts/{base_name}_{timestamp}.rtf"
         
-        # Save the generated text
+        # Save as RTF
         with open(filename, "w", encoding="utf-8") as f:
-            f.write(generated_text)
+            f.write(rtf_content)
         print(f"Debug: Successfully saved to: {filename}")
-        return generated_text
+        
+        return markdown_text  # Return markdown for display in UI
             
-    except openai.error.AuthenticationError:
-        error_msg = "Authentication error with OpenAI API"
-        print(f"Debug: {error_msg}")
-        return error_msg
     except Exception as e:
         error_msg = f"Error: {str(e)}"
         print(f"Debug: {error_msg}")

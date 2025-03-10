@@ -45,6 +45,32 @@ Transform the provided transcript into a professional, structured blog post that
 * Use active voice where possible
 * Convert spoken language patterns into proper written form
 
+## Markdown Formatting Requirements
+* Use # for main title (one only)
+* Use ## for major section headings
+* Use ### for subsections
+* Use #### for minor headings if needed
+* Add blank lines between all sections
+* Format lists with - and proper indentation
+* Use **bold** for emphasis
+* Use proper spacing between paragraphs
+* Keep formatting simple and consistent
+* Avoid complex formatting that may not convert well to RTF
+* Use numbered lists only when sequence matters
+* Ensure consistent list formatting throughout
+
+## RTF Compatibility Guidelines
+* Maintain clean heading hierarchy
+* Use simple bullet points (-)
+* Avoid tables if possible
+* Limit special characters
+* Use standard apostrophes and quotes
+* Keep indentation simple
+* Use consistent line spacing
+* Avoid complex nested lists
+* Use bold for emphasis instead of italics
+* Keep URLs simple and unformatted
+
 ## Final Checks
 * Ensure logical flow from beginning to end
 * Remove any redundant information

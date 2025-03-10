@@ -1,0 +1,36 @@
+# Python Bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables
+.env
+*.env
+
+# IDE and editor settings
+.vscode/
+.idea/
+
+# MacOS system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+
+# Virtual environment
+venv/
+.env/
+
+# Configurations
+config.json # Ignore config file that contains sensitive data like API keys
+
+# Logs
+*.log
+
+# Audio files (if generated temporarily or saved by TTS)
+*.mp3
+*.wav
+
+# Other system or OS-specific files
+*.bak
+*.swp

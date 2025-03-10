@@ -71,6 +71,14 @@ Transform the provided transcript into a professional, structured blog post that
 * Use bold for emphasis instead of italics
 * Keep URLs simple and unformatted
 
+## Character Formatting Requirements
+* Use standard ASCII characters when possible
+* Use simple bullet points (•) instead of dashes or asterisks
+* Use standard quotes (" ") and apostrophes (')
+* Avoid special characters that might not convert well
+* Use simple ellipsis (...) instead of the special character
+* Keep formatting simple and consistent throughout
+
 ## Final Checks
 * Ensure logical flow from beginning to end
 * Remove any redundant information

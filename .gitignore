@@ -34,3 +34,4 @@ config.json # Ignore config file that contains sensitive data like API keys
 # Other system or OS-specific files
 *.bak
 *.swp
+config.json

@@ -132,19 +132,17 @@ def generate_blog_post(transcript, prompt, model, temperature, max_tokens):
         os.makedirs("blog_posts", exist_ok=True)
         print("Debug: Blog posts directory checked/created")
         
-        # Get base filename from transcript
+        # Get base filename from transcript or generate unique timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
         if hasattr(transcript, 'name'):
             base_name = os.path.splitext(os.path.basename(transcript.name))[0]
             print(f"Debug: Using name attribute: {base_name}")
+            filename = f"blog_posts/{base_name}_formatted_{timestamp}.txt"
         else:
-            base_name = "blog_post"
-            print(f"Debug: No name attribute, using default: {base_name}")
-        
-        # Generate output filename
-        from datetime import datetime
-        timestamp = datetime.now().strftime("%Y%m%d")
-        filename = f"blog_posts/{base_name}_{timestamp}.txt"
-        print(f"Debug: Generated filename: {filename}")
+            filename = f"blog_posts/blog_post_{timestamp}.txt"
+            print(f"Debug: Using timestamped name: {filename}")
         
         # Save the generated text
         try:

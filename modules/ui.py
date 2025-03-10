@@ -362,7 +362,6 @@ def simple_speak_text(root, output_text, tts_var):
     dummy_var = DummyVar()
     tts_speak_text(root, output_text, tts_var, dummy_var)
 
-
 def safe_stop_speech():
     """Safely stop the text-to-speech with error handling"""
     try:

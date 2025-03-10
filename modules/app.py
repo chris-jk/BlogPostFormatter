@@ -570,7 +570,12 @@ def process_file(root, model_var, temp_scale, token_scale):
 
     try:
         with open(file_selected, "r", encoding="utf-8") as file:
-            transcript = file.read()
+            content = file.read()
+
+        # Create a named string with the filename
+        class NamedString(str): pass
+        named_content = NamedString(content)
+        named_content.name = file_selected  # Use the full path for the name attribute
 
         # Get the current prompt
         prompt = load_prompt()
@@ -584,17 +589,28 @@ def process_file(root, model_var, temp_scale, token_scale):
         temperature = float(temp_scale.get())
         max_tokens = int(token_scale.get())
 
-        formatted_post = generate_blog_post(
-            transcript, prompt, model, temperature, max_tokens
-        )
+        # Generate the blog post
+        formatted_post = generate_blog_post(named_content, prompt, model, temperature, max_tokens)
 
         # Clear the "Processing..." message
         output_text.delete(1.0, tk.END)
 
+        # Display filename and result
         filename = os.path.basename(file_selected)
-        output_text.insert(tk.END, f"=== {filename} ===\n\n" + formatted_post + "\n\n")
+        
+        # Check if result is an error message
+        if isinstance(formatted_post, str) and formatted_post.startswith("Error:"):
+            output_text.insert(tk.END, f"=== {filename} === ERROR:\n{formatted_post}\n\n")
+            # Show error in a popup
+            messagebox.showerror("Processing Error", formatted_post)
+        else:
+            output_text.insert(tk.END, f"=== {filename} ===\n\n{formatted_post}\n\n")
+            
     except Exception as e:
-        messagebox.showerror("Error", f"An error occurred: {str(e)}")
+        error_message = f"An error occurred: {str(e)}"
+        print(error_message)
+        messagebox.showerror("Error", error_message)
+
 
 
 def process_folder(root, model_var, temp_scale, token_scale):
@@ -622,6 +638,7 @@ def process_folder(root, model_var, temp_scale, token_scale):
         # Count how many files to process
         txt_files = [f for f in os.listdir(folder_selected) if f.endswith(".txt")]
         total_files = len(txt_files)
+        processed_results = []  # Store results for all processed files
 
         for i, filename in enumerate(txt_files):
             # Update processing status
@@ -632,31 +649,49 @@ def process_folder(root, model_var, temp_scale, token_scale):
             root.update_idletasks()
 
             filepath = os.path.join(folder_selected, filename)
-            with open(filepath, "r", encoding="utf-8") as file:
-                transcript = file.read()
+            try:
+                with open(filepath, "r", encoding="utf-8") as file:
+                    content = file.read()
+                
+                # Create a named string subclass with name attribute
+                class NamedString(str): pass
+                named_content = NamedString(content)
+                named_content.name = filepath  # Use the full path for debugging
+                
+                # Generate the blog post and store the result
+                result = generate_blog_post(named_content, prompt, model, temperature, max_tokens)
+                
+                # Store the result regardless of success or failure
+                processed_results.append((filename, result))
+                
+            except Exception as e:
+                error_message = f"Error processing {filename}: {str(e)}"
+                print(error_message)
+                processed_results.append((filename, error_message))
+                # Display the error in a popup
+                messagebox.showerror("Processing Error", error_message)
 
-            formatted_post = generate_blog_post(
-                transcript, prompt, model, temperature, max_tokens
-            )
-
-            # Clear and update the output area with all processed files
-            output_text.delete(1.0, tk.END)
-            for j, processed_file in enumerate(txt_files[: i + 1]):
-                if j == i:  # This is the file we just processed
-                    output_text.insert(
-                        tk.END,
-                        f"=== {processed_file} ===\n\n" + formatted_post + "\n\n",
-                    )
-                else:
-                    # Just indicate it was processed earlier
-                    output_text.insert(
-                        tk.END, f"=== {processed_file} === (Processed)\n\n"
-                    )
-
-            root.update_idletasks()
+        # After all files processed, clear and show all results
+        output_text.delete(1.0, tk.END)
+        
+        for filename, result in processed_results:
+            # Check if result is an error message
+            if result.startswith("Error:"):
+                output_text.insert(
+                    tk.END, f"=== {filename} === ERROR:\n{result}\n\n"
+                )
+            else:
+                output_text.insert(
+                    tk.END, f"=== {filename} ===\n\n{result}\n\n"
+                )
+            
+        # Scroll to the top
+        output_text.see("1.0")
+        
     except Exception as e:
-        messagebox.showerror("Error", f"An error occurred: {str(e)}")
-
+        error_message = f"An error occurred during folder processing: {str(e)}"
+        print(error_message)
+        messagebox.showerror("Error", error_message)
 
 def copy_to_clipboard(root, output_text):
     """Copy the contents of the output text area to the clipboard"""

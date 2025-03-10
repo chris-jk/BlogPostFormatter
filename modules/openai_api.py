@@ -110,21 +110,88 @@ def show_api_key_popup():
 def generate_blog_post(transcript, prompt, model, temperature, max_tokens):
     """Generate a blog post from a transcript using the OpenAI API"""
     try:
+        print("Debug: Starting generate_blog_post")
+        print(f"Debug: Transcript type: {type(transcript)}")
+        print(f"Debug: Transcript has name attribute: {hasattr(transcript, 'name')}")
+        
+        # Get API response
+        print("Debug: Attempting API call...")
         response = openai.ChatCompletion.create(
             model=model,
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": transcript}
+                {"role": "user", "content": str(transcript)}
             ],
             temperature=temperature,
             max_tokens=max_tokens
         )
-        return response["choices"][0]["message"]["content"]
+        print("Debug: API call successful, received response")
+        generated_text = response["choices"][0]["message"]["content"]
+        
+        # Create output directory
+        os.makedirs("blog_posts", exist_ok=True)
+        print("Debug: Blog posts directory checked/created")
+        
+        # Get base filename from transcript
+        if hasattr(transcript, 'name'):
+            base_name = os.path.splitext(os.path.basename(transcript.name))[0]
+            print(f"Debug: Using name attribute: {base_name}")
+        else:
+            base_name = "blog_post"
+            print(f"Debug: No name attribute, using default: {base_name}")
+        
+        # Generate output filename
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d")
+        filename = f"blog_posts/{base_name}_{timestamp}.txt"
+        print(f"Debug: Generated filename: {filename}")
+        
+        # Save the generated text
+        try:
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(generated_text)
+            print(f"Debug: Successfully saved to: {filename}")
+            return generated_text
+        except Exception as e:
+            error_msg = f"Error saving file: {str(e)}"
+            print(f"Debug: {error_msg}")
+            return error_msg
+            
     except openai.error.AuthenticationError:
-        messagebox.showerror("Authentication Error", "Invalid API key. Please check your API key and try again.")
-        openai.api_key = get_api_key()  # Prompt for API key again
-        if openai.api_key:
-            return generate_blog_post(transcript, prompt, model, temperature, max_tokens)  # Try again with new key
-        return "Error: API key authentication failed."
+        error_msg = "Authentication error with OpenAI API"
+        print(f"Debug: {error_msg}")
+        return error_msg
     except Exception as e:
-        return f"Error generating blog post: {str(e)}"
+        error_msg = f"Error: {str(e)}"
+        print(f"Debug: {error_msg}")
+        return error_msg
+
+def process_multiple_files(files, prompt, model, temperature, max_tokens):
+    """Process multiple files and generate blog posts for each"""
+    results = []
+    
+    for file_path in files:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Create named string with file path
+            class NamedString(str): pass
+            named_content = NamedString(content)
+            named_content.name = file_path
+            
+            # Generate blog post
+            result = generate_blog_post(named_content, prompt, model, temperature, max_tokens)
+            
+            # Check result type (string = success)
+            if isinstance(result, str) and not result.startswith("Error:"):
+                results.append((file_path, result))
+                print(f"Successfully processed: {file_path}")
+            else:
+                print(f"Failed to process {file_path}: {result}")
+                
+        except Exception as e:
+            print(f"Error processing {file_path}: {str(e)}")
+            continue
+    
+    return results

@@ -1,0 +1,53 @@
+# Blog Post Formatting Instructions
+
+## Primary Goal
+Transform the provided transcript into a professional, structured blog post that is ready to publish.
+
+## Step-by-Step Formatting Requirements
+
+### Title Creation
+* Create an attention-grabbing title that accurately reflects the content
+* Keep the title concise (recommended 8-12 words)
+* Consider using a question, number, or "how-to" format for higher engagement
+
+### Subtitle/Description Requirements
+* Limit to 200 characters
+* Provide a concise summary that complements the title
+* Capture the essence of the blog post's value proposition
+* Entice readers to continue reading
+
+### Introduction Section
+* Begin with a 2-3 sentence summary of the main topic
+* Highlight the key value proposition or main benefit for the reader
+* Set clear expectations for what the reader will learn
+
+### Content Structure
+* Divide the content into logical sections with clear headings
+* Use subheadings to break down complex topics
+* Follow a hierarchical structure (H2 for main sections, H3 for subsections)
+* Ensure each section transitions smoothly to the next
+
+### Paragraph Formatting
+* Keep paragraphs short and focused (3-5 sentences maximum)
+* Start each paragraph with a clear topic sentence
+* Use bullet points or numbered lists for series of related items
+* Break up long explanations into digestible chunks
+
+### Conclusion Elements
+* Summarize the key points covered
+* Provide a clear takeaway or call to action
+* End with an encouraging or thought-provoking statement
+
+## Style Guidelines
+* Use a professional, clear tone throughout
+* Maintain consistent formatting
+* Avoid jargon unless explained
+* Use active voice where possible
+* Convert spoken language patterns into proper written form
+
+## Final Checks
+* Ensure logical flow from beginning to end
+* Remove any redundant information
+* Verify that headings accurately represent their sections
+* Confirm the post presents a complete, cohesive narrative
+

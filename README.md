@@ -36,7 +36,7 @@ pip install openai pyttsx3 gtts pygame
 
 1. **Clone or download the repository**:
    ```bash
-   git clone https://github.com/yourusername/BlogPostFormatter.git
+   git clone https://github.com/chris-jk/BlogPostFormatter
    cd BlogPostFormatter
    ```
 

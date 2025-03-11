@@ -20,6 +20,8 @@ from modules.openai_api import (
     get_api_key, set_new_api_key, generate_blog_post
 )
 
+from modules.openai_api import detect_key_type, using_openrouter
+
 # Available OpenAI models
 AVAILABLE_MODELS = [
     "gpt-4",
@@ -100,7 +102,6 @@ tts_engine = None  # Add this global variable
 
 def create_ui(root):
     """Create the complete UI for the application"""
-    # Create global variables that need to be accessed by functions
     global output_text, progress_bar, select_button, api_status, tts_engine
     
     # Get saved settings
@@ -115,12 +116,19 @@ def create_ui(root):
     api_frame = ttk.Frame(root, padding=10)
     api_frame.pack(fill=tk.X)
     
-    api_button = ttk.Button(api_frame, text="Change API Key", 
-                           command=lambda: set_new_api_key(api_status))
+    api_button = ttk.Button(
+        api_frame, 
+        text="Change API Key",
+        command=lambda: set_new_api_key(api_status) and update_ui_after_key_change(api_status)
+    )
     api_button.pack(side=tk.LEFT, padx=5)
     
     api_status = ttk.Label(api_frame, text="API Key: Not set")
     api_status.pack(side=tk.LEFT, padx=5)
+    
+    # Add API service type indicator
+    api_service_type = ttk.Label(api_frame, text="", foreground="blue")
+    api_service_type.pack(side=tk.LEFT, padx=5)
     
     prompt_button = ttk.Button(api_frame, text="Edit Prompt", command=edit_prompt)
     prompt_button.pack(side=tk.RIGHT, padx=5)
@@ -136,13 +144,92 @@ def create_ui(root):
     model_label = ttk.Label(model_row, text="Model:", width=15)
     model_label.pack(side=tk.LEFT)
     
-    model_dropdown = ttk.Combobox(model_row, textvariable=model_var, values=AVAILABLE_MODELS, 
-                                 state="readonly", width=20)
+    model_dropdown = ttk.Combobox(
+        model_row, 
+        textvariable=model_var,
+        values=[
+            "deepseek/deepseek-r1-zero:free",  # DeepSeek free model
+            "gpt-3.5-turbo",
+            "gpt-4",
+            "deepseek-chat",
+            "deepseek-coder"
+        ],
+        width=40
+    )
     model_dropdown.pack(side=tk.LEFT, fill=tk.X, expand=True)
     
     model_help_btn = ttk.Button(model_row, text="?", width=3, 
                                command=lambda: show_help(root, "Model Selection Help", MODEL_HELP))
     model_help_btn.pack(side=tk.LEFT, padx=5)
+    
+    # Add model status indicator after model dropdown
+    model_indicator = ttk.Label(model_row, text="", foreground="black")
+    model_indicator.pack(side=tk.LEFT, padx=5)
+    
+    def update_api_info(event=None):
+        """Update API and model status indicators"""
+        selected_model = model_var.get()
+        settings = load_settings()
+        api_key = settings.get('api_key', '')
+        
+        # Detect key type
+        key_type = detect_key_type(api_key)
+        
+        # Update API service type label
+        if key_type == "openrouter":
+            api_service_type.config(text="(Using OpenRouter)", foreground="blue")
+        elif key_type == "openai":
+            api_service_type.config(text="(Using OpenAI)", foreground="black")
+        else:
+            api_service_type.config(text="(API Service Unknown)", foreground="red")
+        
+        # Check model and key compatibility
+        is_deepseek = "deepseek" in selected_model.lower()
+        
+        if is_deepseek and key_type == "openai":
+            model_indicator.config(
+                text="⚠️ DeepSeek requires OpenRouter API key",
+                foreground="red"
+            )
+        elif not is_deepseek and key_type == "openrouter":
+            model_indicator.config(
+                text="⚠️ OpenRouter key with OpenAI model",
+                foreground="orange"
+            )
+        elif is_deepseek:
+            model_indicator.config(
+                text="✓ DeepSeek via OpenRouter",
+                foreground="green"
+            )
+        else:
+            model_indicator.config(
+                text="✓ OpenAI model",
+                foreground="green"
+            )
+    
+    # Bind model selection to update indicators
+    model_dropdown.bind("<<ComboboxSelected>>", update_api_info)
+    
+    def update_ui_after_key_change(api_status_label):
+        """Update UI elements after API key changes"""
+        settings = load_settings()
+        api_key = settings.get('api_key', '')
+        
+        if api_key:
+            key_type = detect_key_type(api_key)
+            api_status_label.config(text="API Key: Set ✓")
+            
+            if key_type == "openrouter":
+                api_service_type.config(text="(Using OpenRouter)", foreground="blue")
+            elif key_type == "openai":
+                api_service_type.config(text="(Using OpenAI)", foreground="black")
+            else:
+                api_service_type.config(text="(API Service Unknown)", foreground="red")
+        else:
+            api_status_label.config(text="API Key: Not set")
+            api_service_type.config(text="", foreground="black")
+        
+        update_api_info()
     
     # Temperature slider
     temp_row = ttk.Frame(model_frame)
@@ -321,6 +408,37 @@ def create_ui(root):
         token_desc_label.config(text="(Medium Post)")
     else:
         token_desc_label.config(text="(Long Post)")
+
+    # Initialize UI indicators at startup
+    update_ui_after_key_change(api_status)
+
+    def select_input():
+        """Handle input selection"""
+        settings = load_settings()
+        initial_dir = settings.get('last_folder', os.path.expanduser("~/Users/chris/Desktop"))
+        
+        # Ensure the path exists, fallback to Desktop if not
+        if not os.path.exists(initial_dir):
+            initial_dir = os.path.expanduser("~/Users/chris/Desktop")
+        
+        selected = filedialog.askdirectory(
+            title="Select Input Folder",
+            initialdir=initial_dir
+        )
+        
+        if selected:
+            # Update settings with new path
+            settings['last_folder'] = selected
+            save_settings(settings)
+            
+            # Update selection variable
+            selection_var.set(selected)
+            
+            # Enable the process button
+            process_button.config(state=tk.NORMAL)
+            
+            print(f"Debug: Selected folder: {selected}")
+            print(f"Debug: Saved to settings: {settings['last_folder']}")
 
 def manage_voice(root, tts_var):
     """Open the voice management dialog"""
@@ -574,3 +692,45 @@ def safe_stop_speech():
                 tts_engine = None
         except:
             pass
+
+def create_folder_controls(parent_frame):
+    """Create folder selection controls"""
+    folder_frame = ttk.Frame(parent_frame)
+    folder_frame.pack(fill=tk.X, padx=10, pady=5)
+    
+    # Add folder path entry
+    folder_path = tk.StringVar()
+    folder_entry = ttk.Entry(folder_frame, textvariable=folder_path, width=50)
+    folder_entry.pack(side=tk.LEFT, padx=(0, 5), fill=tk.X, expand=True)
+    
+    def select_folder():
+        # Get the initial directory from the entry if it exists
+        initial_dir = folder_path.get() if folder_path.get() else os.path.expanduser("~/Users/chris/Desktop")
+        
+        # Open folder dialog
+        folder_selected = filedialog.askdirectory(
+            initialdir=initial_dir,
+            title="Select Folder Containing Transcripts"
+        )
+        
+        if folder_selected:
+            folder_path.set(folder_selected)
+            # Save the last used directory in settings
+            settings = load_settings()
+            settings['last_folder'] = folder_selected
+            save_settings(settings)
+    
+    # Add select folder button
+    select_btn = ttk.Button(
+        folder_frame, 
+        text="Select Folder",
+        command=select_folder
+    )
+    select_btn.pack(side=tk.RIGHT)
+    
+    # Load last used directory from settings
+    settings = load_settings()
+    last_folder = settings.get('last_folder', os.path.expanduser("~/Users/chris/Desktop"))
+    folder_path.set(last_folder)
+    
+    return folder_frame, folder_path

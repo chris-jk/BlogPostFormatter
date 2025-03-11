@@ -30,7 +30,7 @@ from modules.app_globals import update_speech_status, set_speech_status_label
 from modules.openai_api import get_api_key, set_new_api_key, generate_blog_post
 
 # Available OpenAI models
-AVAILABLE_MODELS = ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"]
+AVAILABLE_MODELS = ["deepseek/deepseek-r1-zero:free","gpt-4", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"]
 
 # Help text definitions
 MODEL_HELP = """

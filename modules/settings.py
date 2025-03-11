@@ -22,49 +22,36 @@ PREFERRED_VOICE_IDS = [
 ]
 
 def load_settings():
-    """Load settings from the config file or return defaults"""
+    """Load settings from config file"""
     try:
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, 'r') as f:
-                config = json.load(f)
-                return {
-                    'api_key': config.get('api_key', ''),
-                    'model': config.get('model', DEFAULT_MODEL),
-                    'temperature': config.get('temperature', DEFAULT_TEMPERATURE),
-                    'max_tokens': config.get('max_tokens', DEFAULT_MAX_TOKENS),
-                    'preferred_voices': config.get('preferred_voices', PREFERRED_VOICE_IDS),
-                    'last_voice_id': config.get('last_voice_id', '')
-                }
-    except Exception as e:
-        print(f"Error loading settings: {str(e)}")
-    
-    # Return defaults if loading fails
-    return {
-        'api_key': '',
-        'model': DEFAULT_MODEL,
-        'temperature': DEFAULT_TEMPERATURE,
-        'max_tokens': DEFAULT_MAX_TOKENS,
-        'preferred_voices': PREFERRED_VOICE_IDS,
-        'last_voice_id': ''
-    }
+        with open("config.json", "r") as f:
+            settings = json.load(f)
+            
+            # Convert last_folder to absolute path if it exists
+            if 'last_folder' in settings:
+                settings['last_folder'] = os.path.abspath(settings['last_folder'])
+            else:
+                settings['last_folder'] = os.path.expanduser("~/Users/chris/Desktop")
+                
+            return settings
+    except FileNotFoundError:
+        return {
+            'api_key': '',
+            'model': DEFAULT_MODEL,
+            'temperature': DEFAULT_TEMPERATURE,
+            'max_tokens': DEFAULT_MAX_TOKENS,
+            'last_folder': os.path.expanduser("~/Users/chris/Desktop")
+        }
 
 def save_settings(settings):
-    """Save settings to the config file"""
+    """Save settings to config file"""
     try:
-        # Ensure we maintain any existing settings
-        if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE, 'r') as f:
-                    existing_settings = json.load(f)
-                    # Update existing settings with new values
-                    for key, value in settings.items():
-                        existing_settings[key] = value
-                    settings = existing_settings
-            except:
-                pass  # If reading fails, use the provided settings
-        
-        with open(CONFIG_FILE, 'w') as f:
-            json.dump(settings, f)
+        # Ensure last_folder is absolute path
+        if 'last_folder' in settings:
+            settings['last_folder'] = os.path.abspath(settings['last_folder'])
+            
+        with open("config.json", "w") as f:
+            json.dump(settings, f, indent=4)
         return True
     except Exception as e:
         print(f"Error saving settings: {str(e)}")
